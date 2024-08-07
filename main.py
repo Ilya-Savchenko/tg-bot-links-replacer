@@ -1,9 +1,20 @@
 import logging
+from multiprocessing import Process
 
 from telegram import Update
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes
 
 from settings import TOKEN
+from fastapi import FastAPI
+import uvicorn
+
+app = FastAPI()
+
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,8 +37,17 @@ def main() -> None:
     application.run_polling()
 
 
+def server() -> None:
+    uvicorn.run(app, host="0.0.0.0", port=5000, log_level="info")
+
+
 if __name__ == '__main__':
     try:
-        main()
+        bot = Process(target=main)
+        server = Process(target=server)
+        bot.start()
+        server.start()
+        bot.join()
+        server.join()
     except Exception as e:
         logger.exception(f"got exception: {e}")
