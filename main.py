@@ -1,12 +1,14 @@
 import logging
+import time
 from multiprocessing import Process
 
+import requests
+import uvicorn
+from fastapi import FastAPI
 from telegram import Update
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes
 
 from settings import TOKEN
-from fastapi import FastAPI
-import uvicorn
 
 app = FastAPI()
 
@@ -41,13 +43,28 @@ def server() -> None:
     uvicorn.run(app, host="0.0.0.0", port=5000, log_level="info")
 
 
+def check_server() -> None:
+    while True:
+        try:
+            rsp = requests.get("https://tg-bot-links-replacer.onrender.com")
+        except Exception:
+            logger.error("check server error")
+        else:
+            logger.info(f"response: {rsp.text}")
+        finally:
+            time.sleep(90)
+
+
 if __name__ == '__main__':
     try:
         bot = Process(target=main)
         server = Process(target=server)
+        checker = Process(target=check_server)
         bot.start()
         server.start()
+        checker.start()
         bot.join()
         server.join()
+        checker.join()
     except Exception as e:
         logger.exception(f"got exception: {e}")
